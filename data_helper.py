@@ -10,13 +10,13 @@ if __name__ == "__main__":
 
     directories = {
         1: "./dataset-tire/flat.class",
-        0: "./dataset-tire/full.class"
+        -1: "./dataset-tire/full.class"
     }
 
     images_list = []
 
     # Label used: 1 -> flat tire
-    #             0 -> full tire
+    #            -1 -> full tire
 
     for key in directories.keys():
         images_names = os.listdir(directories.get(key))

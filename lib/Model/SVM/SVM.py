@@ -1,7 +1,7 @@
 import math
 
 import numpy as np
-from Model.Regression.Base import Base
+from lib.Model.Regression.Base import Base
 
 
 class SVM(Base):

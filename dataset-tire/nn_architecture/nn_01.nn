@@ -1,0 +1,5 @@
+draft
+57600 500 Tanh
+500 50 Logistic
+50 1 SoftMax
+0 0
