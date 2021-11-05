@@ -52,7 +52,7 @@ class SVM(Base):
         else:
             x = np.matrix(list(args))
 
-        return np.multiply(x, self.m_weights).sum(axis=1) + self.m_bias
+        return np.multiply(x, self.m_weights).sum(axis=1) - self.m_bias
 
     class Cost:
 

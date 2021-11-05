@@ -10,7 +10,14 @@ def compute_estimation(model, x_test):
     return model(x_test)
 
 
-def compute_accuracy(expected, model, x_test):
+def compute_nn_accuracy(expected, model, x_test):
+    estimation = compute_estimation(model, x_test)
+    processed_est = np.round(estimation)
+    acc = np.where(processed_est == expected, 1, 0).mean()
+    return acc
+
+
+def compute_svm_accuracy(expected, model, x_test):
     estimation = compute_estimation(model, x_test)
     processed_est = np.where(estimation < 0, -1, 1)
     acc = np.where(processed_est == expected, 1, 0).mean()
@@ -39,7 +46,7 @@ def train_svm_model(x_train, y_train, x_test, y_test, arg):
         max_iter=arg.max_iterations
     )
 
-    accuracy = compute_accuracy(y_test, svm_model, x_test)
+    accuracy = compute_svm_accuracy(y_test, svm_model, x_test)
     print("SVM accuracy: ", str(accuracy * 100), "%")
 
 
@@ -62,7 +69,7 @@ def train_neural_network_model(x_train, y_train, x_test, y_test, arg):
         max_iter=arg.max_iterations
     )
 
-    accuracy = compute_accuracy(y_test, neural_network_model, x_test)
+    accuracy = compute_nn_accuracy(y_test, neural_network_model, x_test)
     print("Neural Network accuracy: ", str(accuracy * 100), "%")
 
 
@@ -85,7 +92,7 @@ if __name__ == "__main__":
     X_tst = X_tst - x_off
 
     # Train SVM model based in ADAM optimizer
-    # train_svm_model(X_tra, Y_tra, X_tst, Y_tst, args)
+    train_svm_model(X_tra, Y_tra, X_tst, Y_tst, args)
 
     # Train neural network based in ADAM optimizer
     train_neural_network_model(X_tra, Y_tra, X_tst, Y_tst, args)
