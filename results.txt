@@ -1,0 +1,6 @@
+Learning-rate   batch-size   num-iterations  Model   Optimizer   Regularization   Regularization-type   Architecture   Model Accuracy     Cost
+    1e-4           512            500         SVM      ADAM            0                Ridge                NA             39.44%       563.86
+
+    1e-4           512            500         NN       ADAM            0                Ridge           57600 500 Tanh      0.0%         4.11
+                                                                                                       500 50 Logistic
+                                                                                                        50 1 SoftMax
