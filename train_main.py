@@ -3,7 +3,9 @@ from lib.Data import Algorithms, Normalize
 from lib.Model.NeuralNetwork.FeedForward import FeedForward
 from lib.Model.SVM.SVM import SVM
 from lib.Optimizer.ADAM import ADAM
+from lib.Optimizer.GradientDescent import GradientDescent
 from lib.Helper.Parser.ArgParse import ArgParse
+from lib.Debug.Labeling import Labeling
 
 
 def compute_estimation(model, x_test):
@@ -28,6 +30,34 @@ def debug_function(model, j, dj, i, show):
     if show:
         print("Iteration: ", i, ". Cost: ", j)
 
+def optimizer(model_cost, debug, arg):
+    optimizer_type = args.optimizer_type
+
+    if(optimizer_type == 'adam'):
+        # run Adam optimizer
+        ADAM(
+            cost = model_cost,
+            learning_rate = arg.learning_rate,
+            regularization = arg.regularization,
+            debug_step = arg.debug_step,
+            debug_function = debug,
+            max_iter = arg.max_iterations
+        )
+    elif(optimizer_type == 'desc'):
+        # run Gradient Descent optimizer
+        GradientDescent(
+            cost = model_cost,
+            alpha = args.learning_rate,
+            beta1 = args.beta1,
+            beta2 = args.beta2,
+            max_iter = args.max_iterations,
+            epsilon = args.epsilon,
+            regularization = args.regularization,
+            reg_type = args.reg_type,
+            debug_step = args.debug_step,
+            debug_function = debug
+        )
+
 
 def train_svm_model(x_train, y_train, x_test, y_test, arg):
     # Initialize SVM model
@@ -36,15 +66,7 @@ def train_svm_model(x_train, y_train, x_test, y_test, arg):
     # Set SVM Cost model to ADAM optimizer
     svm_cost = SVM.Cost(svm_model, batch_size=arg.batch_size)
 
-    # run Adam optimizer
-    ADAM(
-        cost=svm_cost,
-        learning_rate=arg.learning_rate,
-        regularization=arg.regularization,
-        debug_step=arg.debug_step,
-        debug_function=debug_function,
-        max_iter=arg.max_iterations
-    )
+    optimizer(svm_cost, debug_function, arg)
 
     accuracy = compute_svm_accuracy(y_test, svm_model, x_test)
     print("SVM accuracy: ", str(accuracy * 100), "%")
@@ -58,16 +80,11 @@ def train_neural_network_model(x_train, y_train, x_test, y_test, arg):
     # Define cost function
     nn_cost = FeedForward.Cost(x_train, y_train, neural_network_model, batch_size=arg.batch_size)
     nn_cost.SetPropagationTypeToBinaryCrossEntropy()
+    
+    # -- Prepare debug
+    debug = Labeling( x_train, y_train, threshold = 0.5 )
 
-    # run Adam optimizer
-    ADAM(
-        cost=nn_cost,
-        learning_rate=arg.learning_rate,
-        regularization=arg.regularization,
-        debug_step=arg.debug_step,
-        debug_function=debug_function,
-        max_iter=arg.max_iterations
-    )
+    optimizer(nn_cost, debug, arg)
 
     accuracy = compute_nn_accuracy(y_test, neural_network_model, x_test)
     print("Neural Network accuracy: ", str(accuracy * 100), "%")
@@ -84,15 +101,42 @@ if __name__ == "__main__":
     #   6. Compare results
 
     parser = ArgParse()
+    parser.add_argument( 'input_data_file', type = str )
+    parser.add_argument( '-tr', '--train-size', type = float, default = 0.7 )
+    parser.add_argument( '-ts', '--test-size', type = float, default = 0.3 )
+    parser.add_argument(
+            '-m', '--model-type', type=str, choices=['svm', 'nn'],
+            default='svm'
+        )
+    parser.add_argument(
+            '-o', '--optimizer-type', type=str, choices=['adam', 'desc'],
+            default='adam'
+        )
     args = parser.parse_args()
-    input_data = np.loadtxt('./dataset-tire/input_data.csv', delimiter=',')
+    
 
-    X_tra, Y_tra, X_tst, Y_tst, *_ = Algorithms.SplitData(input_data, 1, train_size=0.7, test_size=0.3)
+    input_data_file = args.input_data_file
+    model_type = args.model_type
+    train_size = args.train_size
+    test_size = args.test_size
+
+    print(input_data_file)
+    print(model_type)
+    print(train_size)
+    print(test_size)
+
+    input_data = np.loadtxt(input_data_file, delimiter=',')
+
+    X_tra, Y_tra, X_tst, Y_tst, *_ = Algorithms.SplitData(input_data, 1, train_size, test_size)
     X_tra, x_off, x_div = Normalize.Center(X_tra)
     X_tst = X_tst - x_off
 
-    # Train SVM model based in ADAM optimizer
-    train_svm_model(X_tra, Y_tra, X_tst, Y_tst, args)
 
-    # Train neural network based in ADAM optimizer
-    train_neural_network_model(X_tra, Y_tra, X_tst, Y_tst, args)
+    if(model_type == 'svm'):
+        # Train SVM model based in ADAM optimizer
+        train_svm_model(X_tra, Y_tra, X_tst, Y_tst, args)
+    elif(model_type == 'nn'):
+        # Train neural network based in ADAM optimizer
+        train_neural_network_model(X_tra, Y_tra, X_tst, Y_tst, args)
+
+
