@@ -34,7 +34,7 @@ def optimizer(model_cost, debug, arg):
     optimizer_type = args.optimizer_type
 
     if(optimizer_type == 'adam'):
-        # run Adam optimizer
+        print('Adam optimizer')
         ADAM(
             cost = model_cost,
             learning_rate = arg.learning_rate,
@@ -44,7 +44,7 @@ def optimizer(model_cost, debug, arg):
             max_iter = arg.max_iterations
         )
     elif(optimizer_type == 'desc'):
-        # run Gradient Descent optimizer
+        print('Gradient Descent optimizer')
         GradientDescent(
             cost = model_cost,
             alpha = args.learning_rate,
@@ -84,7 +84,7 @@ def train_neural_network_model(x_train, y_train, x_test, y_test, arg):
     # -- Prepare debug
     debug = Labeling( x_train, y_train, threshold = 0.5 )
 
-    optimizer(nn_cost, debug, arg)
+    optimizer(nn_cost, debug_function, arg)
 
     accuracy = compute_nn_accuracy(y_test, neural_network_model, x_test)
     print("Neural Network accuracy: ", str(accuracy * 100), "%")
@@ -120,10 +120,8 @@ if __name__ == "__main__":
     train_size = args.train_size
     test_size = args.test_size
 
-    print(input_data_file)
-    print(model_type)
-    print(train_size)
-    print(test_size)
+    print('Train Size: ', train_size)
+    print('Test Size: ', test_size)
 
     input_data = np.loadtxt(input_data_file, delimiter=',')
 
@@ -133,10 +131,10 @@ if __name__ == "__main__":
 
 
     if(model_type == 'svm'):
-        # Train SVM model based in ADAM optimizer
+        print('Train SVM model based in')
         train_svm_model(X_tra, Y_tra, X_tst, Y_tst, args)
     elif(model_type == 'nn'):
-        # Train neural network based in ADAM optimizer
+        print('Train neural network based in')
         train_neural_network_model(X_tra, Y_tra, X_tst, Y_tst, args)
 
 
