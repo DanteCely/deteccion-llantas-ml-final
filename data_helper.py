@@ -27,7 +27,8 @@ if __name__ == "__main__":
             images_list.append(np.append(gray_image.flatten(), [key]))
 
     images_array = np.array(images_list)
-    np.random.shuffle(images_array)
+    rng = np.random.default_rng()
+    rng.shuffle(images_array)
 
     np.savetxt('./dataset-tire/input_data.csv', images_array, delimiter=',', newline='\n', fmt='%u')
 
