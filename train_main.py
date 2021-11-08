@@ -61,7 +61,7 @@ def train_svm_model(x_train, y_train, x_test, y_test, arg):
     svm_model = SVM(in_x=x_train, in_y=y_train)
 
     # Set SVM Cost model to ADAM optimizer
-    svm_cost = SVM.Cost(svm_model, batch_size=arg.batch_size)
+    svm_cost = SVM.Cost(m_Model=svm_model, batch_size=arg.batch_size)
 
     optimizer(svm_cost, debug_function, arg)
 
@@ -111,21 +111,28 @@ def train_random_forest_model(x_train, y_train, x_test, y_test, arg):
     train.append(x_train_2)
     labels.append(y_train_2)
 
-    # For first approach, each model is going to have 1/4 of x_train columns
-    rng = np.random.default_rng()
+    enum_cols = np.linspace(0, train_columns - 1, train_columns)
 
     rf_models = []
+    models_cols = []
 
     for i in range(len(train)):
         tra = train[i]
         label = labels[i]
 
-        # First, randomize x_train columns
-        rng.shuffle(tra, axis=1)
+        # First, randomize columns indexes
+        np.random.shuffle(enum_cols)
+
+        # Then, store those column in the array
+        cols_1 = np.array(enum_cols[0:math.floor(train_columns / 2)], dtype=np.uint16)
+        cols_2 = np.array(enum_cols[math.floor(train_columns / 2):train_columns], dtype=np.uint16)
+
+        models_cols.append(cols_1)
+        models_cols.append(cols_2)
 
         # Divide the columns in two groups
-        tra_1 = tra[:, 0:math.floor(train_columns / 2)]
-        tra_2 = tra[:, math.floor(train_columns / 2):train_columns]
+        tra_1 = tra[:, cols_1]
+        tra_2 = tra[:, cols_2]
 
         # For column subgroup 1, create a SVM
         svm = SVM(in_x=tra_1, in_y=label)
@@ -135,7 +142,7 @@ def train_random_forest_model(x_train, y_train, x_test, y_test, arg):
         nn_label = np.where(label == -1, 0, label)
         nn.LoadParameters(arg.nn_descriptor)
 
-        svm_cost = SVM.Cost(m_model=svm, batch_size=arg.batch_size)
+        svm_cost = SVM.Cost(m_Model=svm, batch_size=arg.batch_size)
         nn_cost = FeedForward.Cost(in_X=tra_2, in_Y=nn_label, batch_size=arg.batch_size, model=nn)
         nn_cost.SetPropagationTypeToBinaryCrossEntropy()
 
@@ -147,7 +154,42 @@ def train_random_forest_model(x_train, y_train, x_test, y_test, arg):
     for model in rf_models:
         optimizer(model_cost=model, debug=debug_function, arg=arg)
 
-    # TODO: compute model accuracy
+    estimations = []
+
+    # Compute output of each model
+    for i in range(len(rf_models)):
+        x_subset = x_test[:, models_cols[i]]
+        model_est = rf_models[i].m_Model(x_subset)
+
+        # If i is even, process SVM
+        if i % 2 == 0:
+            estimations.append(np.where(model_est < -1, -1, np.where(model_est > 1, 1, 0)))
+        # Otherwise, process NN
+        else:
+            estimations.append(np.where(np.round(model_est) == 0, -1, 1))
+
+    estimations = np.array(estimations)
+    # After that, compute random forest output by voting
+    rf_estimation = []
+    bins = [-1, 0, 1]
+    # Iterate over all test samples
+    for i in range(estimations.shape[1]):
+        # Get estimation vector
+        est = estimations[:, i, 0]
+
+        # Compute the histogram in the estimation vector and retrieve the index of the label with more votes
+        max_votes = np.histogram(est, bins=bins)[0].argmax()
+
+        # Place in the estimation the label with more votes
+        rf_estimation.append(bins[max_votes])
+
+    y_test = y_test.flatten()
+    rf_estimation = np.array(rf_estimation)
+    res = np.where(y_test == rf_estimation, 1, 0)
+    bagging_accuracy = res.sum() / res.shape[0]
+
+    print('Random Forest accuracy: ', str(bagging_accuracy * 100), "%")
+
 
 if __name__ == "__main__":
 
