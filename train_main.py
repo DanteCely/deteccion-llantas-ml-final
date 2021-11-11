@@ -13,10 +13,6 @@ opt = {
     'desc': GradientDescent
 }
 
-<<<<<<< HEAD
-
-=======
->>>>>>> 668316a... Add automation experimentor :v
 def compute_estimation(model, x_test):
     return model(x_test)
 
@@ -36,7 +32,6 @@ def compute_svm_accuracy(expected, model, x_test):
 
 
 def debug_function(model, j, dj, i, show):
-    global CostF
     if show:
         print("Iteration: ", i, ". Cost: ", j)
 
@@ -49,9 +44,9 @@ def optimizer(model_cost, debug, arg):
         learning_rate=arg.learning_rate,
         regularization=arg.regularization,
         reg_type=args.reg_type,
-        debug_step=arg.debug_step,
-        debug_function=debug,
-        max_iter=arg.max_iterations,
+        debug_step=args.debug_step,
+        debug_function=None,
+        max_iter=args.max_iterations,
         alpha=args.learning_rate,
         beta1=args.beta1,
         beta2=args.beta2,
@@ -324,6 +319,8 @@ if __name__ == "__main__":
 
                                     finally:
                                         experiments_amount += 1
+                                        print('Experiment ',experiments_amount, '=> Accuracy: ', accuracy, ' Cost: ', final_cost)
+
                                         if experiments_amount % experiments_steps == 0:
                                             write_data(cadena)
                                             cadena = ''
