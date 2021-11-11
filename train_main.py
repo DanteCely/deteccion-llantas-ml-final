@@ -34,26 +34,25 @@ def compute_svm_accuracy(expected, model, x_test):
 def debug_function(model, j, dj, i, show):
     global CostF
     if show:
-        CostF = j
-        # print("Iteration: ", i, ". Cost: ", j)
+        print("Iteration: ", i, ". Cost: ", j)
 
 
-def optimizer(model_cost, debug, arg):
+def optimizer(model_cost, debug, args):
     optimizer_type = args.optimizer_type
 
     return opt[optimizer_type](
-            cost=model_cost,
-            learning_rate=arg.learning_rate,
-            regularization=arg.regularization,
-            reg_type=args.reg_type,
-            debug_step=arg.debug_step,
-            debug_function=debug,
-            max_iter=arg.max_iterations,
-            alpha=args.learning_rate,
-            beta1=args.beta1,
-            beta2=args.beta2,
-            epsilon=args.epsilon,
-        )
+        cost=model_cost,
+        learning_rate=args.learning_rate,
+        regularization=args.regularization,
+        reg_type=args.reg_type,
+        debug_step=args.debug_step,
+        debug_function=debug,
+        max_iter=args.max_iterations,
+        alpha=args.learning_rate,
+        beta1=args.beta1,
+        beta2=args.beta2,
+        epsilon=args.epsilon,
+    )
 
 
 def train_svm_model(x_train, y_train, x_test, y_test, arg):
@@ -64,10 +63,10 @@ def train_svm_model(x_train, y_train, x_test, y_test, arg):
     # Set SVM Cost model to ADAM optimizer
     svm_cost = SVM.Cost(m_Model=svm_model, batch_size=arg.batch_size)
 
-    costFinal = optimizer(svm_cost, debug_function, arg)
+    cost = optimizer(svm_cost, debug_function, arg)
 
     accuracy = compute_svm_accuracy(y_test, svm_model, x_test)
-    return ( accuracy, costFinal)
+    return accuracy, cost
 
 
 def train_neural_network_model(x_train, y_train, x_test, y_test, arg):
@@ -83,12 +82,12 @@ def train_neural_network_model(x_train, y_train, x_test, y_test, arg):
     nn_cost = FeedForward.Cost(x_train, y_train, neural_network_model, batch_size=arg.batch_size)
     nn_cost.SetPropagationTypeToBinaryCrossEntropy()
 
-    costFinal = optimizer(nn_cost, debug_function, arg)
+    cost = optimizer(nn_cost, debug_function, arg)
 
     # Change y_test labels from -1 to 0
     y_test = np.where(y_test == -1, 0, y_test)
     accuracy = compute_nn_accuracy(y_test, neural_network_model, x_test)
-    return ( accuracy, costFinal)
+    return accuracy, cost
 
 
 def train_random_forest_model(x_train, y_train, x_test, y_test, arg):
@@ -100,14 +99,14 @@ def train_random_forest_model(x_train, y_train, x_test, y_test, arg):
     train = []
     labels = []
 
-    x_train_1 = x_train[0:round(train_samples/2), :]
-    y_train_1 = y_train[0:round(train_samples/2), :]
+    x_train_1 = x_train[0:round(train_samples / 2), :]
+    y_train_1 = y_train[0:round(train_samples / 2), :]
 
     train.append(x_train_1)
     labels.append(y_train_1)
 
-    x_train_2 = x_train[round(train_samples/2):train_samples, :]
-    y_train_2 = y_train[round(train_samples/2):train_samples, :]
+    x_train_2 = x_train[round(train_samples / 2):train_samples, :]
+    y_train_2 = y_train[round(train_samples / 2):train_samples, :]
 
     train.append(x_train_2)
     labels.append(y_train_2)
@@ -152,8 +151,9 @@ def train_random_forest_model(x_train, y_train, x_test, y_test, arg):
         rf_models.append(nn_cost)
 
     # Start training process for each model
+    cost = None
     for model in rf_models:
-        costFinal = optimizer(model_cost=model, debug=debug_function, arg=arg)
+        cost = optimizer(model_cost=model, debug=debug_function, arg=arg)
 
     estimations = []
 
@@ -189,28 +189,30 @@ def train_random_forest_model(x_train, y_train, x_test, y_test, arg):
     res = np.where(y_test == rf_estimation, 1, 0)
     bagging_accuracy = res.sum() / res.shape[0]
 
-    return (bagging_accuracy, costFinal)
+    return bagging_accuracy, cost
 
-def some_func(args, accuracy, cost):    
-    toAlgo = args.model_type \
-    + ',' + args.optimizer_type \
-    + ',' + args.nn_descriptor \
-    + ',' + args.reg_type \
-    + ',' + str(args.batch_size) \
-    + ',' + str(args.regularization) \
-    + ',' + str(args.max_iterations) \
-    + ',' + str(args.learning_rate) \
-    + ',' + accuracy \
-    + ',' + str(cost) \
-    + '\n'
 
-    return toAlgo
+def concatResults(args, accuracy, cost):
+    to_algo = args.model_type \
+              + ',' + args.optimizer_type \
+              + ',' + args.nn_descriptor \
+              + ',' + args.reg_type \
+              + ',' + str(args.batch_size) \
+              + ',' + str(args.regularization) \
+              + ',' + str(args.max_iterations) \
+              + ',' + str(args.learning_rate) \
+              + ',' + accuracy \
+              + ',' + str(cost) \
+              + '\n'
+
+    return to_algo
 
 
 def write_data(data):
     file_object = open('./experiments.csv', 'a')
     file_object.write(data)
     file_object.close()
+
 
 if __name__ == "__main__":
 
@@ -223,19 +225,19 @@ if __name__ == "__main__":
     #   6. Compare results
 
     parser = ArgParse()
-    parser.add_argument('-es', '--experiments-steps', type=float, default=10)
+    parser.add_argument('-es', '--experiments-steps', type=float, default=1)
     parser.add_argument('input_data_file', type=str)
     # parser.add_argument('nn_descriptor', type=str)  # Options: None or file direction
     parser.add_argument('-tr', '--train-size', type=float, default=0.7)
     parser.add_argument('-ts', '--test-size', type=float, default=0.3)
     parser.add_argument(
-            '-m', '--model-type', type=str, choices=['svm', 'nn', 'random_forest'],
-            default='svm'
-        )
+        '-m', '--model-type', type=str, choices=['svm', 'nn', 'random_forest'],
+        default='svm'
+    )
     parser.add_argument(
-            '-o', '--optimizer-type', type=str, choices=['adam', 'desc'],
-            default='adam'
-        )
+        '-o', '--optimizer-type', type=str, choices=['adam', 'desc'],
+        default='adam'
+    )
     args = parser.parse_args()
     input_data_file = args.input_data_file
     # model_type = args.model_type
@@ -261,30 +263,30 @@ if __name__ == "__main__":
     X_tst = X_tst - x_off
     print('End Split Data')
 
-    meta_model_type = ['svm'] ## Opcion 1
+    meta_model_type = ['svm']  ## Opcion 1
     # meta_model_type = ['nn'] ## Opcion 2
     # meta_model_type = ['random_forest'] ## Opcion 3
     meta_optimizer_type = ['adam', 'desc']
-    meta_nn_descriptor = [''] ## Opcion 1
+    meta_nn_descriptor = ['']  ## Opcion 1
     # meta_nn_descriptor = ['dataset-tire/nn_architecture/nn_01.nn', 'dataset-tire/nn_architecture/nn_02.nn'] ## Opcion 2
-    # meta_nn_descriptor = ['dataset-tire/nn_architecture/random_forest_nn_01.nn'] ## Opcion 3
-    meta_reg_type = [ '0', 'lasso', 'ridge']
+    # meta_nn_descriptor = ['dataset-tire/nn_architecture/random_forest_nn_01.nn'] ## Opcion 3  
+    meta_reg_type = ['0', 'lasso', 'ridge']
     meta_batch_size = [-1, 16, 64]
     meta_regularization = [0, 0.01, 100]
     meta_max_iterations = [100, 500, 1000]
     meta_learning_rate = [1e-2, 1e-4, 1e-6, 1e-8]
 
-    cadena = 'model_type' \
-    + ',' + 'optimizer_type' \
-    + ',' + 'nn_descriptor' \
-    + ',' + 'reg_type' \
-    + ',' + 'batch_size' \
-    + ',' + 'regularization' \
-    + ',' + 'max_iterations' \
-    + ',' + 'learning_rate' \
-    + ',' + 'accuracy' \
-    + ',' + 'cost' \
-    + '\n'
+    resultLine = 'model_type' \
+             + ',' + 'optimizer_type' \
+             + ',' + 'nn_descriptor' \
+             + ',' + 'reg_type' \
+             + ',' + 'batch_size' \
+             + ',' + 'regularization' \
+             + ',' + 'max_iterations' \
+             + ',' + 'learning_rate' \
+             + ',' + 'accuracy' \
+             + ',' + 'cost' \
+             + '\n'
 
     experiments_amount = 0
     experiments_steps = args.experiments_steps
@@ -308,18 +310,18 @@ if __name__ == "__main__":
                                     args.learning_rate = learning_rate
 
                                     try:
-                                        accuracy, CostFinal = models[args.model_type](X_tra, Y_tra, X_tst, Y_tst, args)
-                                        newAccuracy = str(accuracy*100)
-                                        cadena += some_func(args, newAccuracy, CostFinal)
-                                                                      
-                                    except:
-                                        cadena += some_func(args, '0', '-1')
+                                        accuracy, final_cost = models[args.model_type](X_tra, Y_tra, X_tst, Y_tst, args)
+                                        newAccuracy = str(accuracy * 100)
+                                        resultLine += concatResults(args, newAccuracy, final_cost)
+
+                                    except RuntimeError:
+                                        print("Error!")
+                                        resultLine += concatResults(args, '0', '-1')
 
                                     finally:
                                         experiments_amount += 1
                                         print(experiments_amount)
-                                        
-                                        if experiments_amount % experiments_steps == 0:
-                                            write_data(cadena)
-                                            cadena = ''
 
+                                        if experiments_amount % experiments_steps == 0:
+                                            write_data(resultLine)
+                                            resultLine = ''
