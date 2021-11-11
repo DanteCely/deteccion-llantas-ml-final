@@ -13,8 +13,6 @@ opt = {
     'desc': GradientDescent
 }
 
-CostF = None
-
 def compute_estimation(model, x_test):
     return model(x_test)
 
@@ -34,6 +32,7 @@ def compute_svm_accuracy(expected, model, x_test):
 
 
 def debug_function(model, j, dj, i, show):
+    global CostF
     if show:
         CostF = j
         # print("Iteration: ", i, ". Cost: ", j)
@@ -42,7 +41,7 @@ def debug_function(model, j, dj, i, show):
 def optimizer(model_cost, debug, arg):
     optimizer_type = args.optimizer_type
 
-    opt[optimizer_type](
+    return opt[optimizer_type](
             cost=model_cost,
             learning_rate=arg.learning_rate,
             regularization=arg.regularization,
@@ -65,10 +64,10 @@ def train_svm_model(x_train, y_train, x_test, y_test, arg):
     # Set SVM Cost model to ADAM optimizer
     svm_cost = SVM.Cost(m_Model=svm_model, batch_size=arg.batch_size)
 
-    optimizer(svm_cost, debug_function, arg)
+    costFinal = optimizer(svm_cost, debug_function, arg)
 
     accuracy = compute_svm_accuracy(y_test, svm_model, x_test)
-    return ( accuracy, CostF)
+    return ( accuracy, costFinal)
 
 
 def train_neural_network_model(x_train, y_train, x_test, y_test, arg):
@@ -84,12 +83,12 @@ def train_neural_network_model(x_train, y_train, x_test, y_test, arg):
     nn_cost = FeedForward.Cost(x_train, y_train, neural_network_model, batch_size=arg.batch_size)
     nn_cost.SetPropagationTypeToBinaryCrossEntropy()
 
-    optimizer(nn_cost, debug_function, arg)
+    costFinal = optimizer(nn_cost, debug_function, arg)
 
     # Change y_test labels from -1 to 0
     y_test = np.where(y_test == -1, 0, y_test)
     accuracy = compute_nn_accuracy(y_test, neural_network_model, x_test)
-    return ( accuracy, CostF)
+    return ( accuracy, costFinal)
 
 
 def train_random_forest_model(x_train, y_train, x_test, y_test, arg):
@@ -154,7 +153,7 @@ def train_random_forest_model(x_train, y_train, x_test, y_test, arg):
 
     # Start training process for each model
     for model in rf_models:
-        optimizer(model_cost=model, debug=debug_function, arg=arg)
+        costFinal = optimizer(model_cost=model, debug=debug_function, arg=arg)
 
     estimations = []
 
@@ -190,7 +189,7 @@ def train_random_forest_model(x_train, y_train, x_test, y_test, arg):
     res = np.where(y_test == rf_estimation, 1, 0)
     bagging_accuracy = res.sum() / res.shape[0]
 
-    return (bagging_accuracy, CostF)
+    return (bagging_accuracy, costFinal)
 
 def some_func(args, accuracy, cost):    
     toAlgo = args.model_type \
@@ -202,7 +201,7 @@ def some_func(args, accuracy, cost):
     + ',' + str(args.max_iterations) \
     + ',' + str(args.learning_rate) \
     + ',' + accuracy \
-    + ',' + cost \
+    + ',' + str(cost) \
     + '\n'
 
     return toAlgo
@@ -268,7 +267,7 @@ if __name__ == "__main__":
     meta_optimizer_type = ['adam', 'desc']
     meta_nn_descriptor = [''] ## Opcion 1
     # meta_nn_descriptor = ['dataset-tire/nn_architecture/nn_01.nn', 'dataset-tire/nn_architecture/nn_02.nn'] ## Opcion 2
-    # meta_nn_descriptor = ['dataset-tire/nn_architecture/random_forest_nn_01.nn'] ## Opcion 3  
+    # meta_nn_descriptor = ['dataset-tire/nn_architecture/random_forest_nn_01.nn'] ## Opcion 3
     meta_reg_type = [ '0', 'lasso', 'ridge']
     meta_batch_size = [-1, 16, 64]
     meta_regularization = [0, 0.01, 100]
@@ -318,9 +317,9 @@ if __name__ == "__main__":
 
                                     finally:
                                         experiments_amount += 1
+                                        print(experiments_amount)
                                         
                                         if experiments_amount % experiments_steps == 0:
                                             write_data(cadena)
-                                            print(':)')
                                             cadena = ''
 
