@@ -325,3 +325,5 @@ if __name__ == "__main__":
                                         if experiments_amount % experiments_steps == 0:
                                             write_data(resultLine)
                                             resultLine = ''
+
+## To Run: python3 train_main.py dataset-tire/input_data.csv
