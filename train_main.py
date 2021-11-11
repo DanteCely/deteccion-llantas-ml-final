@@ -13,7 +13,10 @@ opt = {
     'desc': GradientDescent
 }
 
+<<<<<<< HEAD
 
+=======
+>>>>>>> 668316a... Add automation experimentor :v
 def compute_estimation(model, x_test):
     return model(x_test)
 
@@ -33,6 +36,7 @@ def compute_svm_accuracy(expected, model, x_test):
 
 
 def debug_function(model, j, dj, i, show):
+    global CostF
     if show:
         print("Iteration: ", i, ". Cost: ", j)
 
@@ -269,7 +273,7 @@ if __name__ == "__main__":
     meta_optimizer_type = ['adam', 'desc']
     meta_nn_descriptor = ['']  ## Opcion 1
     # meta_nn_descriptor = ['dataset-tire/nn_architecture/nn_01.nn', 'dataset-tire/nn_architecture/nn_02.nn'] ## Opcion 2
-    # meta_nn_descriptor = ['dataset-tire/nn_architecture/random_forest_nn_01.nn'] ## Opcion 3  
+    # meta_nn_descriptor = ['dataset-tire/nn_architecture/random_forest_nn_01.nn'] ## Opcion 3
     meta_reg_type = ['0', 'lasso', 'ridge']
     meta_batch_size = [-1, 16, 64]
     meta_regularization = [0, 0.01, 100]
@@ -320,7 +324,6 @@ if __name__ == "__main__":
 
                                     finally:
                                         experiments_amount += 1
-
                                         if experiments_amount % experiments_steps == 0:
                                             write_data(cadena)
                                             cadena = ''
