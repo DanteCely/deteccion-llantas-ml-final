@@ -32,7 +32,6 @@ def compute_svm_accuracy(expected, model, x_test):
 
 
 def debug_function(model, j, dj, i, show):
-    global CostF
     if show:
         print("Iteration: ", i, ". Cost: ", j)
 
@@ -46,7 +45,8 @@ def optimizer(model_cost, debug, args):
         regularization=args.regularization,
         reg_type=args.reg_type,
         debug_step=args.debug_step,
-        debug_function=debug,
+        # debug_function=debug,
+        debug_function=None,
         max_iter=args.max_iterations,
         alpha=args.learning_rate,
         beta1=args.beta1,
@@ -320,7 +320,7 @@ if __name__ == "__main__":
 
                                     finally:
                                         experiments_amount += 1
-                                        print(experiments_amount)
+                                        print('Experiment ',experiments_amount, '=> Accuracy: ', accuracy, ' Cost: ', final_cost)
 
                                         if experiments_amount % experiments_steps == 0:
                                             write_data(resultLine)
