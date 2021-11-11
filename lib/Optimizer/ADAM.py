@@ -13,7 +13,7 @@ def ADAM(cost, **kwargs):
     num_iterations = 1e10
     debug_function = None
     regularization_type = 'ridge'
-    print('Adam optimizer')
+    # print('Adam optimizer')
 
     if 'learning_rate' in kwargs:
         learning_rate = float(kwargs['learning_rate'])
