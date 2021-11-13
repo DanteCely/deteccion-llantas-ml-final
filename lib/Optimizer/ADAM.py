@@ -61,7 +61,7 @@ def ADAM(cost, **kwargs):
             # Apply regularization
             if alpha > 0:
                 if regularization_type == 'ridge':
-                    current_cost += alpha * (np.linalg.norm(np.power(cost.m_model.m_weights, 2)) + cost.m_model.m_bias ** 2)
+                    current_cost += alpha * (np.linalg.norm(np.power(cost.m_Model.m_weights, 2)) + cost.m_Model.m_bias ** 2)
                     gradient[1:] += (2 * alpha * cost.m_Model.m_weights)
                     gradient[0, 0] += (2 * alpha * cost.m_Model.m_bias)
 
