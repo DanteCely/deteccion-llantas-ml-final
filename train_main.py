@@ -13,7 +13,6 @@ opt = {
     'desc': GradientDescent
 }
 
-
 def compute_estimation(model, x_test):
     return model(x_test)
 
@@ -37,17 +36,18 @@ def debug_function(model, j, dj, i, show):
         print("Iteration: ", i, ". Cost: ", j)
 
 
-def optimizer(model_cost, debug, arg):
+def optimizer(model_cost, debug, args):
     optimizer_type = args.optimizer_type
 
     return opt[optimizer_type](
         cost=model_cost,
-        learning_rate=arg.learning_rate,
-        regularization=arg.regularization,
+        learning_rate=args.learning_rate,
+        regularization=args.regularization,
         reg_type=args.reg_type,
-        debug_step=arg.debug_step,
-        debug_function=debug,
-        max_iter=arg.max_iterations,
+        debug_step=args.debug_step,
+        # debug_function=debug,
+        debug_function=None,
+        max_iter=args.max_iterations,
         alpha=args.learning_rate,
         beta1=args.beta1,
         beta2=args.beta2,
@@ -192,7 +192,7 @@ def train_random_forest_model(x_train, y_train, x_test, y_test, arg):
     return bagging_accuracy, cost
 
 
-def some_func(args, accuracy, cost):
+def concatResults(args, accuracy, cost):
     to_algo = args.model_type \
               + ',' + args.optimizer_type \
               + ',' + args.nn_descriptor \
@@ -225,7 +225,7 @@ if __name__ == "__main__":
     #   6. Compare results
 
     parser = ArgParse()
-    parser.add_argument('-es', '--experiments-steps', type=float, default=10)
+    parser.add_argument('-es', '--experiments-steps', type=float, default=1)
     parser.add_argument('input_data_file', type=str)
     # parser.add_argument('nn_descriptor', type=str)  # Options: None or file direction
     parser.add_argument('-tr', '--train-size', type=float, default=0.7)
@@ -276,7 +276,7 @@ if __name__ == "__main__":
     meta_max_iterations = [100, 500, 1000]
     meta_learning_rate = [1e-2, 1e-4, 1e-6, 1e-8]
 
-    cadena = 'model_type' \
+    resultLine = 'model_type' \
              + ',' + 'optimizer_type' \
              + ',' + 'nn_descriptor' \
              + ',' + 'reg_type' \
@@ -312,15 +312,18 @@ if __name__ == "__main__":
                                     try:
                                         accuracy, final_cost = models[args.model_type](X_tra, Y_tra, X_tst, Y_tst, args)
                                         newAccuracy = str(accuracy * 100)
-                                        cadena += some_func(args, newAccuracy, final_cost)
+                                        resultLine += concatResults(args, newAccuracy, final_cost)
 
                                     except RuntimeError:
                                         print("Error!")
-                                        cadena += some_func(args, '0', '-1')
+                                        resultLine += concatResults(args, '0', '-1')
 
                                     finally:
                                         experiments_amount += 1
+                                        print('Experiment ',experiments_amount, '=> Accuracy: ', accuracy, ' Cost: ', final_cost)
 
                                         if experiments_amount % experiments_steps == 0:
-                                            write_data(cadena)
-                                            cadena = ''
+                                            write_data(resultLine)
+                                            resultLine = ''
+
+## To Run: python3 train_main.py dataset-tire/input_data.csv
