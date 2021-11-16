@@ -13,7 +13,7 @@ def ADAM(cost, **kwargs):
     num_iterations = 1e10
     debug_function = None
     regularization_type = 'ridge'
-    # print('Adam optimizer')
+    model_type = 'svm'
 
     if 'learning_rate' in kwargs:
         learning_rate = float(kwargs['learning_rate'])
@@ -42,6 +42,9 @@ def ADAM(cost, **kwargs):
     if 'b2' in kwargs:
         b2 = float(kwargs['b2'])
 
+    if 'model_type' in kwargs:
+        model_type = kwargs['model_type']
+
     t = 1
     stop = False
     current_cost = math.inf
@@ -50,20 +53,36 @@ def ADAM(cost, **kwargs):
     m_0 = np.zeros(args.shape)
     v_0 = np.zeros(args.shape)
 
+    print('model_type', model_type)
+
     # Main loop
     while delta_cost > epsilon and t < num_iterations and not stop:
 
         # Batch loop
         for batch in range(cost.GetNumberOfBatches()):
             # Compute gradients vector
-            current_cost, gradient = cost.CostAndGradient(args, batch)
+            current_cost, gradient = cost.CostAndGradient(args, batch)         
 
             # Apply regularization
             if alpha > 0:
-                if regularization_type == 'ridge':
-                    current_cost += alpha * (np.linalg.norm(np.power(cost.m_Model.m_weights, 2)) + cost.m_Model.m_bias ** 2)
-                    gradient[0, 1:] += (2 * alpha * cost.m_Model.m_weights)
-                    gradient[0, 0] += (2 * alpha * cost.m_Model.m_bias)
+                if model_type == "svm":
+                    if regularization_type == 'ridge':
+                        current_cost += alpha * (np.linalg.norm(np.power(cost.m_Model.m_weights, 2)) + cost.m_Model.m_bias ** 2)
+                        gradient[1:] += (2 * alpha * cost.m_Model.m_weights)
+                        gradient[0, 0] += (2 * alpha * cost.m_Model.m_bias)
+
+                if model_type == "nn":
+                    if regularization_type == 'ridge' and model_type == "nn":
+                        current_cost += alpha * args @ args.T
+                        gradient += 2.0 * alpha * args
+                    elif regularization_type == 'lasso':
+                        current_cost += alpha * np.abs( args ).sum( )
+                        gradient += alpha * ( args > 0 ).astype( gradient.dtype ).sum( )
+                        gradient -= alpha * ( args < 0 ).astype( gradient.dtype ).sum( )
+                    # end if
+                if model_type == "random_forest":
+                    ## Regulation of random_forest
+                    pass
 
             # Update biased first moment estimate
             m_t = (b1 * m_0) + (1 - b1) * gradient

@@ -51,6 +51,7 @@ def optimizer(model_cost, debug, arg):
         beta1=args.beta1,
         beta2=args.beta2,
         epsilon=args.epsilon,
+        model_type = args.model_type
     )
 
 
@@ -262,14 +263,14 @@ if __name__ == "__main__":
     X_tst = X_tst - x_off
     print('End Split Data')
 
-    meta_model_type = ['svm']  ## Opcion 1
-    # meta_model_type = ['nn'] ## Opcion 2
+    # meta_model_type = ['svm']  ## Opcion 1
+    meta_model_type = ['nn'] ## Opcion 2
     # meta_model_type = ['random_forest'] ## Opcion 3
     meta_optimizer_type = ['adam', 'desc']
-    meta_nn_descriptor = ['']  ## Opcion 1
-    # meta_nn_descriptor = ['dataset-tire/nn_architecture/nn_01.nn', 'dataset-tire/nn_architecture/nn_02.nn'] ## Opcion 2
+    # meta_nn_descriptor = ['']  ## Opcion 1
+    meta_nn_descriptor = ['dataset-tire/nn_architecture/nn_01.nn', 'dataset-tire/nn_architecture/nn_02.nn'] ## Opcion 2
     # meta_nn_descriptor = ['dataset-tire/nn_architecture/random_forest_nn_01.nn'] ## Opcion 3
-    meta_reg_type = ['0', 'lasso', 'ridge']
+    meta_reg_type = ['ridge', '0', 'lasso']
     meta_batch_size = [-1, 16, 64]
     meta_regularization = [0, 0.01, 100]
     meta_max_iterations = [100, 500, 1000]
