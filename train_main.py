@@ -7,6 +7,8 @@ from lib.Model.SVM.SVM import SVM
 from lib.Optimizer.ADAM import ADAM
 from lib.Optimizer.GradientDescent import GradientDescent
 from lib.Helper.Parser.ArgParse import ArgParse
+import multiprocessing as mp
+import time
 
 opt = {
     'adam': ADAM,
@@ -71,7 +73,7 @@ def train_svm_model(x_train, y_train, x_test, y_test, arg):
 
 def train_neural_network_model(x_train, y_train, x_test, y_test, arg):
     # Initialize neural network model
-    print('Train neural network based in')
+    # print('Train neural network based in')
     neural_network_model = FeedForward()
     neural_network_model.LoadParameters(arg.nn_descriptor)
 
@@ -192,7 +194,7 @@ def train_random_forest_model(x_train, y_train, x_test, y_test, arg):
     return bagging_accuracy, cost
 
 
-def some_func(args, accuracy, cost):
+def concatResults(args, accuracy, cost, total_time):
     to_algo = args.model_type \
               + ',' + args.optimizer_type \
               + ',' + args.nn_descriptor \
@@ -203,15 +205,19 @@ def some_func(args, accuracy, cost):
               + ',' + str(args.learning_rate) \
               + ',' + accuracy \
               + ',' + str(cost) \
+              + ',' + total_time \
               + '\n'
 
     return to_algo
 
 
 def write_data(data):
-    file_object = open('./experiments.csv', 'a')
+    file_object = open('./experiments1.csv', 'a')
     file_object.write(data)
     file_object.close()
+
+def get_total_time(start, end):
+  return end - start
 
 
 if __name__ == "__main__":
@@ -267,8 +273,8 @@ if __name__ == "__main__":
     meta_model_type = ['nn'] ## Opcion 2
     # meta_model_type = ['random_forest'] ## Opcion 3
     meta_optimizer_type = ['adam', 'desc']
-    # meta_nn_descriptor = ['']  ## Opcion 1
-    meta_nn_descriptor = ['dataset-tire/nn_architecture/nn_01.nn', 'dataset-tire/nn_architecture/nn_02.nn'] ## Opcion 2
+    meta_nn_descriptor = ['']  ## Opcion 1
+    meta_nn_descriptor = ['dataset-tire/nn_architecture/nn_02.nn' ,'dataset-tire/nn_architecture/nn_01.nn', 'dataset-tire/nn_architecture/nn_03s.nn'] ## Opcion 2
     # meta_nn_descriptor = ['dataset-tire/nn_architecture/random_forest_nn_01.nn'] ## Opcion 3
     meta_reg_type = ['ridge', '0', 'lasso']
     meta_batch_size = [-1, 16, 64]
@@ -286,11 +292,16 @@ if __name__ == "__main__":
              + ',' + 'learning_rate' \
              + ',' + 'accuracy' \
              + ',' + 'cost' \
+             + ',' + 'total_time' \
              + '\n'
 
+    write_data(cadena)
+
+    ## Init experiments
     experiments_amount = 0
     experiments_steps = args.experiments_steps
 
+    print('============ Start Experiments')
     for model in meta_model_type:
         args.model_type = model
         for optimizer_type in meta_optimizer_type:
@@ -308,20 +319,26 @@ if __name__ == "__main__":
                                 args.debug_step = max_iterations - 1
                                 for learning_rate in meta_learning_rate:
                                     args.learning_rate = learning_rate
+                                    # experiments.append(args)
+                                    # do_experiment(args) ## Do secuential
 
                                     try:
-                                        accuracy, final_cost = models[args.model_type](X_tra, Y_tra, X_tst, Y_tst, args)
+                                        model = models[args.model_type]
+                                        start_time = time.time()
+                                        accuracy, final_cost = model(X_tra, Y_tra, X_tst, Y_tst, args)
+                                        end_time = time.time()
+                                        total_time = f'{get_total_time(start_time, end_time):.5f}'
                                         newAccuracy = str(accuracy * 100)
-                                        cadena += some_func(args, newAccuracy, final_cost)
+                                        resultLine += concatResults(args, newAccuracy, final_cost, total_time)
 
                                     except RuntimeError:
                                         print("Error!")
-                                        cadena += some_func(args, '0', '-1')
+                                        resultLine += concatResults(args, '0', '-1', '0')
 
                                     finally:
                                         experiments_amount += 1
                                         print('Experiment ',experiments_amount, '=> Accuracy: ', accuracy, ' Cost: ', final_cost)
+                                        write_data(resultLine)
+                                        resultLine = ''
 
-                                        if experiments_amount % experiments_steps == 0:
-                                            write_data(cadena)
-                                            cadena = ''
+## To Run: python3 train_main.py dataset-tire/input_data.csv

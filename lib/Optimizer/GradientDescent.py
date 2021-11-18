@@ -17,7 +17,7 @@ def GradientDescent(cost, **kwargs):
     ds = 100
     df = None
     T = cost.GetInitialParameters()
-    print('Gradient Descent optimizer')
+    # print('Gradient Descent optimizer')
 
     if 'learning_rate' in kwargs: a = float(kwargs['learning_rate'])
     if 'regularization' in kwargs: l = float(kwargs['regularization'])
