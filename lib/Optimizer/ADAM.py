@@ -53,7 +53,7 @@ def ADAM(cost, **kwargs):
     m_0 = np.zeros(args.shape)
     v_0 = np.zeros(args.shape)
 
-    print('model_type', model_type)
+    # print('model_type', model_type)
 
     # Main loop
     while delta_cost > epsilon and t < num_iterations and not stop:
