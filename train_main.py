@@ -264,6 +264,14 @@ if __name__ == "__main__":
     }
     print('Load Data End')
 
+    # Reduce Data
+    # input_data_tam = len(input_data)
+    # input_data_pca = input_data[ : , 0 : 299]
+    # input_data_response = np.array([input_data[:, -1]])
+    # input_data_response = input_data_response.T
+
+    # input_data = np.concatenate((input_data_pca, input_data_response), axis=1)
+
     print('Start Split Data')
     X_tra, Y_tra, X_tst, Y_tst, *_ = Algorithms.SplitData(input_data, 1, train_size, test_size)
     X_tra, x_off, x_div = Normalize.Center(X_tra)
