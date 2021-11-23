@@ -1,10 +1,15 @@
 import os
 import cv2
+import sys
 import numpy as np
 
 
 if __name__ == "__main__":
+    if len(sys.argv) < 2:
+        print("Usage: ", sys.argv[0], " new_size")
+        exit(-1)
 
+    new_size = int(sys.argv[1])
     flat_directory = "./dataset-tire/flat.class"
     full_directory = "./dataset-tire/full.class"
 
@@ -24,12 +29,14 @@ if __name__ == "__main__":
         for flat_image_name in images_names:
             img = cv2.imread(flat_directory + "/" + flat_image_name)
             gray_image = cv2.cvtColor(img, cv2.COLOR_RGB2GRAY)
-            images_list.append(np.append(gray_image.flatten(), [key]))
+            scaled_image = cv2.resize(gray_image, (new_size, new_size), cv2.INTER_LANCZOS4)
+            images_list.append(np.append(scaled_image.flatten(), [key]))
 
     images_array = np.array(images_list)
     rng = np.random.default_rng()
     rng.shuffle(images_array)
+    filename = './dataset-tire/input_data' + str(new_size) + '_' + str(new_size) + '.csv'
 
-    np.savetxt('./dataset-tire/input_data.csv', images_array, delimiter=',', newline='\n', fmt='%u')
+    np.savetxt(filename, images_array, delimiter=',', newline='\n', fmt='%u')
 
     print("Process finished. ", len(images_list),  " images processed")
