@@ -81,7 +81,7 @@ def ADAM(cost, **kwargs):
                         gradient -= alpha * ( args < 0 ).astype( gradient.dtype ).sum( )
                     # end if
                 if model_type == "random_forest":
-                    ## Regulation of random_forest
+                    # Regulation of random_forest
                     pass
 
             # Update biased first moment estimate
