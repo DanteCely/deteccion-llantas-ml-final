@@ -7,13 +7,13 @@ from lib.Model.SVM.SVM import SVM
 from lib.Optimizer.ADAM import ADAM
 from lib.Optimizer.GradientDescent import GradientDescent
 from lib.Helper.Parser.ArgParse import ArgParse
-import multiprocessing as mp
 import time
 
 opt = {
     'adam': ADAM,
     'desc': GradientDescent
 }
+
 
 def compute_estimation(model, x_test):
     return model(x_test)
@@ -47,14 +47,13 @@ def optimizer(model_cost, debug, args):
         regularization=args.regularization,
         reg_type=args.reg_type,
         debug_step=args.debug_step,
-        # debug_function=debug,
         debug_function=None,
         max_iter=args.max_iterations,
         alpha=args.learning_rate,
         beta1=args.beta1,
         beta2=args.beta2,
         epsilon=args.epsilon,
-        model_type = args.model_type
+        model_type=args.model_type
     )
 
 
@@ -119,63 +118,74 @@ def train_random_forest_model(x_train, y_train, x_test, y_test, arg):
     rf_models = []
     models_cols = []
 
-    for i in range(len(train)):
-        tra = train[i]
-        label = labels[i]
+    # ----- Use the first subgroup to train SVM models -----
+    np.random.shuffle(enum_cols)
+    cols_1_svm = np.array(enum_cols[0:math.floor(train_columns / 3)], dtype=np.uint16)
+    cols_2_svm = np.array(enum_cols[math.floor(train_columns / 3):math.floor(train_columns / 3) * 2], dtype=np.uint16)
+    cols_3_svm = np.array(enum_cols[math.floor(train_columns / 3) * 2:], dtype=np.uint16)
 
-        # First, randomize columns indexes
-        np.random.shuffle(enum_cols)
+    models_cols.append(cols_1_svm)
+    models_cols.append(cols_2_svm)
+    models_cols.append(cols_3_svm)
 
-        # Then, store those column in the array
-        cols_1 = np.array(enum_cols[0:math.floor(train_columns / 2)], dtype=np.uint16)
-        cols_2 = np.array(enum_cols[math.floor(train_columns / 2):train_columns], dtype=np.uint16)
+    train_1_svm = train[0][:, cols_1_svm]
+    train_2_svm = train[0][:, cols_2_svm]
+    train_3_svm = train[0][:, cols_3_svm]
 
-        models_cols.append(cols_1)
-        models_cols.append(cols_2)
+    svm_trains = [train_1_svm, train_2_svm, train_3_svm]
 
-        # Divide the columns in two groups
-        tra_1 = tra[:, cols_1]
-        tra_2 = tra[:, cols_2]
-
-        # For column subgroup 1, create a SVM
-        svm = SVM(in_x=tra_1, in_y=label)
-
-        # For column subgroup 2, create a NN
-        nn = FeedForward()
-        nn_label = np.where(label == -1, 0, label)
-        nn.LoadParameters(arg.nn_descriptor)
-
+    for svm_train in svm_trains:
+        svm = SVM(in_x=svm_train, in_y=labels[0])
         svm_cost = SVM.Cost(m_Model=svm, batch_size=arg.batch_size)
-        nn_cost = FeedForward.Cost(in_X=tra_2, in_Y=nn_label, batch_size=arg.batch_size, model=nn)
-        nn_cost.SetPropagationTypeToBinaryCrossEntropy()
-
-        # Append the models in an array
         rf_models.append(svm_cost)
+
+    # ----- Second subgroup is going to be used for NN models -----
+    np.random.shuffle(enum_cols)
+    cols_1_nn = np.array(enum_cols[0:math.floor(train_columns / 2)], dtype=np.uint16)
+    cols_2_nn = np.array(enum_cols[math.floor(train_columns / 2):], dtype=np.uint16)
+
+    models_cols.append(cols_1_nn)
+    models_cols.append(cols_2_nn)
+
+    tra_1_nn = train[1][:, cols_1_nn]
+    tra_2_nn = train[1][:, cols_2_nn]
+
+    nn_trains = [tra_1_nn, tra_2_nn]
+    nn_labels = np.where(labels[1] == -1, 0, labels[1])
+
+    for nn_train in nn_trains:
+        nn = FeedForward()
+        nn.LoadParameters(args.nn_descriptor)
+        nn_cost = FeedForward.Cost(in_X=nn_train, in_Y=nn_labels, batch_size=arg.batch_size, model=nn)
+        nn_cost.SetPropagationTypeToBinaryCrossEntropy()
         rf_models.append(nn_cost)
 
     # Start training process for each model
     cost = None
-    for model in rf_models:
-        cost = optimizer(model_cost=model, debug=debug_function, arg=arg)
+    i = 0
+    for rf_model in rf_models:
+        cost = optimizer(model_cost=rf_model, debug=debug_function, args=arg)
+        print("Model ", i, " trained successfully")
+        i += 1
 
     estimations = []
 
-    # Compute output of each model
-    for i in range(len(rf_models)):
-        x_subset = x_test[:, models_cols[i]]
-        model_est = rf_models[i].m_Model(x_subset)
+    # Compute output for SVM
+    for i in range(3):
+        x_subset = x_test[:, models_cols[i].tolist()]
+        svm_est = rf_models[i].m_Model(x_subset)
+        estimations.append(np.where(svm_est < -1, -1, np.where(svm_est > 1, 1, 0)))
 
-        # If i is even, process SVM
-        if i % 2 == 0:
-            estimations.append(np.where(model_est < -1, -1, np.where(model_est > 1, 1, 0)))
-        # Otherwise, process NN
-        else:
-            estimations.append(np.where(np.round(model_est) == 0, -1, 1))
+    # Compute output for NN
+    for i in range(3, 5):
+        x_subset = x_test[:, models_cols[i]]
+        nn_est = rf_models[i].m_Model(x_subset)
+        estimations.append(np.where(np.round(nn_est) == 0, -1, 1))
 
     estimations = np.array(estimations)
     # After that, compute random forest output by voting
     rf_estimation = []
-    bins = [-1, 0, 1]
+    bins = [-1, 0, 1, 2]
     # Iterate over all test samples
     for i in range(estimations.shape[1]):
         # Get estimation vector
@@ -217,8 +227,9 @@ def write_data(data):
     file_object.write(data)
     file_object.close()
 
+
 def get_total_time(start, end):
-  return end - start
+    return end - start
 
 
 if __name__ == "__main__":
@@ -264,80 +275,41 @@ if __name__ == "__main__":
     }
     print('Load Data End')
 
-    # Reduce Data
-    # input_data_tam = len(input_data)
-    # input_data_pca = input_data[ : , 0 : 299]
-    # input_data_response = np.array([input_data[:, -1]])
-    # input_data_response = input_data_response.T
-
-    # input_data = np.concatenate((input_data_pca, input_data_response), axis=1)
-
     print('Start Split Data')
     X_tra, Y_tra, X_tst, Y_tst, *_ = Algorithms.SplitData(input_data, 1, train_size, test_size)
     X_tra, x_off, x_div = Normalize.Center(X_tra)
     X_tst = X_tst - x_off
     print('End Split Data')
 
-    # meta_model_type = ['svm']  ## Opcion 1
-    meta_model_type = ['nn'] ## Opcion 2
-    # meta_model_type = ['random_forest'] ## Opcion 3
+    meta_model_type = ['random_forest']  # Opcion 2
     meta_optimizer_type = ['adam', 'desc']
-    meta_nn_descriptor = ['']  ## Opcion 1
-    meta_nn_descriptor = ['dataset-tire/nn_architecture/nn_02.nn' ,'dataset-tire/nn_architecture/nn_01.nn', 'dataset-tire/nn_architecture/nn_03s.nn'] ## Opcion 2
-    # meta_nn_descriptor = ['dataset-tire/nn_architecture/random_forest_nn_01.nn'] ## Opcion 3  
+    meta_nn_descriptor = ['./dataset-tire/nn_architecture/nn_01_48_48.nn']
     meta_reg_type = ['ridge', '0', 'lasso']
-    meta_batch_size = [-1, 16, 64]
+    meta_batch_size = [-1, 16, 32]
     meta_regularization = [0, 0.01, 100]
     meta_max_iterations = [100, 500, 1000]
     meta_learning_rate = [1e-2, 1e-4, 1e-6, 1e-8]
 
     resultLine = 'model_type' \
-             + ',' + 'optimizer_type' \
-             + ',' + 'nn_descriptor' \
-             + ',' + 'reg_type' \
-             + ',' + 'batch_size' \
-             + ',' + 'regularization' \
-             + ',' + 'max_iterations' \
-             + ',' + 'learning_rate' \
-             + ',' + 'accuracy' \
-             + ',' + 'cost' \
-             + ',' + 'total_time' \
-             + '\n'
+                 + ',' + 'optimizer_type' \
+                 + ',' + 'nn_descriptor' \
+                 + ',' + 'reg_type' \
+                 + ',' + 'batch_size' \
+                 + ',' + 'regularization' \
+                 + ',' + 'max_iterations' \
+                 + ',' + 'learning_rate' \
+                 + ',' + 'accuracy' \
+                 + ',' + 'cost' \
+                 + ',' + 'total_time' \
+                 + '\n'
 
-    ## Init experiments
+    # Init experiments
     experiments_amount = 0
     experiments_steps = args.experiments_steps
-    # experiments = []
-
-    # def do_experiment(args):
-    #     global resultLine
-    #     global experiments_amount
-
-    #     try:
-    #         model = models[args.model_type]
-    #         start_time = time.time()
-    #         accuracy, final_cost = model(X_tra, Y_tra, X_tst, Y_tst, args)
-    #         end_time = time.time()
-    #         total_time = f'{get_total_time(start_time, end_time):.5f}'
-    #         newAccuracy = str(accuracy * 100)
-    #         resultLine += concatResults(args, newAccuracy, final_cost, total_time)
-
-    #     except RuntimeError:
-    #         print("Error!")
-    #         resultLine += concatResults(args, '0', '-1', '0')
-
-    #     finally:            
-    #         experiments_amount += 1
-    #         print('Experiment ',experiments_amount, '=> Accuracy: ', accuracy, ' Cost: ', final_cost)
-    #         write_data(resultLine)
-    #         resultLine = ''
-    #         # if experiments_amount % experiments_steps == 0:
-    #         #     write_data(resultLine)
-    #         #     resultLine = ''
 
     print('============ Start Experiments')
-    for model in meta_model_type:
-        args.model_type = model
+    for exp_model in meta_model_type:
+        args.model_type = exp_model
         for optimizer_type in meta_optimizer_type:
             args.optimizer_type = optimizer_type
             for nn_descriptor in meta_nn_descriptor:
@@ -350,11 +322,8 @@ if __name__ == "__main__":
                             args.regularization = regularization
                             for max_iterations in meta_max_iterations:
                                 args.max_iterations = max_iterations
-                                args.debug_step = max_iterations - 1
                                 for learning_rate in meta_learning_rate:
                                     args.learning_rate = learning_rate
-                                    # experiments.append(args)
-                                    # do_experiment(args) ## Do secuential
 
                                     try:
                                         model = models[args.model_type]
@@ -369,26 +338,8 @@ if __name__ == "__main__":
                                         print("Error!")
                                         resultLine += concatResults(args, '0', '-1', '0')
 
-                                    finally:            
+                                    finally:
                                         experiments_amount += 1
-                                        print('Experiment ',experiments_amount, '=> Accuracy: ', accuracy, ' Cost: ', final_cost)
+                                        print('Experiment ', experiments_amount, '=> Accuracy: NA Cost: NA')
                                         write_data(resultLine)
                                         resultLine = ''
-                                        # if experiments_amount % experiments_steps == 0:
-                                        #     write_data(resultLine)
-                                        #     resultLine = ''
-            
-    # experiments.reverse()
-    # print(f'Number of experiments: {len(experiments)}\n')
-    # # Parallel experiments
-    # print('================== Start Parallel Experiments')
-    # pool = mp.Pool(processes=1)
-    
-    # for element in experiments:
-    #     pool.apply(do_experiment, (element,))
-    
-    # pool.close()
-    # print('================== End Parallel Experiment')
-
-
-## To Run: python3 train_main.py dataset-tire/input_data.csv

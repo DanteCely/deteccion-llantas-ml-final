@@ -1,0 +1,6 @@
+draft
+1152 500 Tanh
+500 250 Logistic
+250 50 Tanh
+50 1 Logistic
+0 0
