@@ -62,7 +62,7 @@ if __name__ == "__main__":
 
   # for i in range(0,input_file_tam, 1000):
 
-  get_the_best_columns(input_file, 0, 2000)
+  get_the_best_columns(input_file, 100000, 5000)
 
 
 

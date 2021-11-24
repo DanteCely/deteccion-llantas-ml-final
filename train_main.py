@@ -8,6 +8,8 @@ from lib.Optimizer.ADAM import ADAM
 from lib.Optimizer.GradientDescent import GradientDescent
 from lib.Helper.Parser.ArgParse import ArgParse
 import time
+from sklearn.decomposition import PCA
+import sys
 
 opt = {
     'adam': ADAM,
@@ -223,7 +225,7 @@ def concatResults(args, accuracy, cost, total_time):
 
 
 def write_data(data):
-    file_object = open('./experiments1.csv', 'a')
+    file_object = open('./experiments_con_pca_sin_softmax.csv', 'a')
     file_object.write(data)
     file_object.close()
 
@@ -275,8 +277,26 @@ if __name__ == "__main__":
     }
     print('Load Data End')
 
+    # Reduce Data
+    # input_data_tam = len(input_data)
+    # input_data_pca = input_data[ : , 10000 : 10299]
+    # input_data_response = np.array([input_data[:, -1]])
+    # input_data_response = input_data_response.T
+
+    # input_data = np.concatenate((input_data_pca, input_data_response), axis=1)
+
     print('Start Split Data')
     X_tra, Y_tra, X_tst, Y_tst, *_ = Algorithms.SplitData(input_data, 1, train_size, test_size)
+
+    # PCA ===============================================================
+    pca = PCA(.9999999)
+    pca.fit(X_tra)
+    X_tra = pca.transform(X_tra)
+    X_tst = pca.transform(X_tst)
+    print('X_tra shape', X_tra.shape)
+    print('X_tst shape', X_tst.shape)
+    # PCA ===============================================================
+
     X_tra, x_off, x_div = Normalize.Center(X_tra)
     X_tst = X_tst - x_off
     print('End Split Data')
@@ -288,7 +308,7 @@ if __name__ == "__main__":
     meta_batch_size = [-1, 16, 32]
     meta_regularization = [0, 0.01, 100]
     meta_max_iterations = [100, 500, 1000]
-    meta_learning_rate = [1e-2, 1e-4, 1e-6, 1e-8]
+    meta_learning_rate = [1e-8, 1e-6, 1e-4, 1e-2]
 
     resultLine = 'model_type' \
                  + ',' + 'optimizer_type' \
@@ -340,7 +360,7 @@ if __name__ == "__main__":
 
                                     finally:
                                         experiments_amount += 1
-                                        print('Experiment ', experiments_amount, '=> Accuracy: NA Cost: NA')
+                                        print('Experiment ',experiments_amount, '=> Accuracy: ', accuracy, ' Cost: ', final_cost, ' Total time: ', total_time)
                                         write_data(resultLine)
                                         resultLine = ''
 
