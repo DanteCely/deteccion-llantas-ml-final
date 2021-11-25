@@ -38,4 +38,14 @@ def Standardize( X ):
   return C / d, o, d
 # end def
 
+def Decorrelation( X ):
+  m = X.mean( axis = 0 )
+  C = X - m
+  S = ( X - m ).T @ ( X - m ) / ( X.shape[ 0 ] - 1 )
+  _, eigen_vectors = numpy.linalg.eig( S )
+  decorrelation = numpy.dot(C, eigen_vectors.T)
+
+  return decorrelation, m, S
+# end def
+
 ## eof - $RCSfile$

@@ -225,7 +225,7 @@ def concatResults(args, accuracy, cost, total_time):
 
 
 def write_data(data):
-    file_object = open('./experiments_con_pca_sin_softmax.csv', 'a')
+    file_object = open('./experiments_with_decorrelation.csv', 'a')
     file_object.write(data)
     file_object.close()
 
@@ -297,13 +297,22 @@ if __name__ == "__main__":
     print('X_tst shape', X_tst.shape)
     # PCA ===============================================================
 
+    X_tra, x_off, x_div = Normalize.MinMax(X_tra)
+    X_tst = X_tst - x_off
+
     X_tra, x_off, x_div = Normalize.Center(X_tra)
+    X_tst = X_tst - x_off
+
+    # X_tra, x_off, x_div = Normalize.Standardize(X_tra)
+    # X_tst = X_tst - x_off
+
+    X_tra, x_off, x_div = Normalize.Decorrelation(X_tra)
     X_tst = X_tst - x_off
     print('End Split Data')
 
-    meta_model_type = ['random_forest']  # Opcion 2
+    meta_model_type = ['nn', 'random_forest']  # Opcion 2
     meta_optimizer_type = ['adam', 'desc']
-    meta_nn_descriptor = ['./dataset-tire/nn_architecture/nn_01_48_48.nn']
+    meta_nn_descriptor = ['./dataset-tire/nn_architecture/nn_01.nn']
     meta_reg_type = ['ridge', '0', 'lasso']
     meta_batch_size = [-1, 16, 32]
     meta_regularization = [0, 0.01, 100]
