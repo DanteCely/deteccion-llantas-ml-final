@@ -3,7 +3,8 @@ import cv2
 import sys
 import numpy as np
 
-
+# This python script is used to load the images and store them in a csv file, also it helps to resize the images
+# to the desired dimensions
 if __name__ == "__main__":
     if len(sys.argv) < 2:
         print("Usage: ", sys.argv[0], " new_size")
