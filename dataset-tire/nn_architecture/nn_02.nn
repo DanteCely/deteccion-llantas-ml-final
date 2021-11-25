@@ -1,5 +1,5 @@
 draft
-57600 500 Logistic
-500 1000 Tanh
-1000 1 SoftMax
+272 500 Logistic
+500 250 ReLU
+250 1 SoftMax
 0 0
